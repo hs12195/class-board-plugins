@@ -112,3 +112,70 @@ window.LOTTO_PLUGINS.push({
     });
   }
 });
+window.LOTTO_PLUGINS.push({
+  title: '🥚 幸運恐龍蛋孵化',
+  hint: '選一顆恐龍蛋輕輕敲開，看看會孵出幾分寶貝！',
+  render: function(container, claimPointsFn) {
+    // 注入專屬樣式（只會注入一次，風格對齊主程式手繪粗框風）
+    if (!document.getElementById('dino-egg-style')) {
+      const st = document.createElement('style');
+      st.id = 'dino-egg-style';
+      st.textContent = `
+        @keyframes eggWobble {
+          0%, 100% { transform: rotate(0deg) scale(1.05); }
+          25% { transform: rotate(-10deg) scale(1.08); }
+          50% { transform: rotate(10deg) scale(1.08); }
+          75% { transform: rotate(-6deg) scale(1.06); }
+        }
+        .egg-stage {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
+          max-width: 380px;
+          margin: 10px auto 14px;
+          padding: 14px 10px;
+          background: #E9F4E0;
+          border: 3px solid #3E3A39;
+          border-radius: 20px;
+          box-shadow: 4px 4px 0 #3E3A39;
+        }
+        .egg-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 12px 6px;
+          border: 3px solid #3E3A39;
+          border-radius: 18px;
+          background: #FFFEFA;
+          box-shadow: 3px 3px 0 #3E3A39;
+          transition: transform .15s, background .2s;
+        }
+        .egg-btn:hover:not(:disabled) {
+          transform: translateY(-5px);
+        }
+        .egg-shell {
+          width: 58px;
+          height: 70px;
+          border: 3px solid #3E3A39;
+          border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+          display: grid;
+          place-items: center;
+          font-size: 26px;
+          font-weight: 700;
+          position: relative;
+          box-shadow: inset -4px -4px 0 rgba(62,58,57,.12);
+        }
+        .egg-btn[data-egg="0"] .egg-shell { background: #F6D27A; }
+        .egg-btn[data-egg="1"] .egg-shell { background: #A8D3E6; }
+        .egg-btn[data-egg="2"] .egg-shell { background: #F2A497; }
+        .egg-btn.hatching .egg-shell {
+          animation: eggWobble .55s ease-in-out;
+        }
+        .egg-btn.hatched {
+          background: #FFFDF5;
+          border-color: #D9453D;
+          transform: scale(1.06);
+        }
+        .egg-btn.hatched .egg-shell {
