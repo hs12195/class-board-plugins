@@ -487,3 +487,309 @@ window.LOTTO_PLUGINS.push({
     };
   }
 });
+/* =====================================================================
+ * 外掛擴充包（第三批 6 款新遊戲）：
+ * 1. 草原趣味賽馬  2. 極速賽車大賽  3. 充氣爆氣球
+ * 4. 籃子接星星    5. 生日吹蠟燭    6. 夜空流星許願
+ * ===================================================================== */
+
+(function() {
+  if (!document.getElementById('lotto-batch3-style')) {
+    const st = document.createElement('style');
+    st.id = 'lotto-batch3-style';
+    st.textContent = `
+      /* 1. 賽馬 */
+      .horse-track{max-width:360px;margin:8px auto 12px;padding:10px 12px;background:#E9F4E0;border:3px solid #3E3A39;border-radius:18px;box-shadow:4px 4px 0 #3E3A39}
+      .horse-lane{position:relative;height:44px;border-bottom:2px dashed rgba(62,58,57,.35);display:flex;align-items:center}
+      .horse-lane:last-child{border-bottom:0}
+      .horse-finish{position:absolute;right:26px;top:2px;bottom:2px;width:6px;background:repeating-linear-gradient(0deg,#3E3A39 0 6px,#FFF 6px 12px)}
+      .horse-runner{position:absolute;left:6px;font-size:28px;transition:left 1.1s cubic-bezier(.25,.8,.35,1);transform:scaleX(-1)}
+      .horse-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+
+      /* 2. 賽車 */
+      .car-track{position:relative;height:130px;max-width:360px;margin:8px auto 12px;padding:12px;background:#EAECEF;border:3px solid #3E3A39;border-radius:18px;box-shadow:4px 4px 0 #3E3A39;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+      .car-road{position:relative;height:58px;background:#555;border-top:3px solid #3E3A39;border-bottom:3px solid #3E3A39;display:flex;align-items:center}
+      .car-stripe{position:absolute;left:0;right:0;height:4px;background:repeating-linear-gradient(90deg,#FFF 0 18px,transparent 18px 34px)}
+      .car-goal{position:absolute;right:18px;top:0;bottom:0;width:14px;background:repeating-conic-gradient(#3E3A39 0% 25%,#FFF 0% 50%) 50% / 10px 10px;border-left:2px solid #3E3A39}
+      .race-car{position:absolute;left:12px;font-size:34px;transition:left .85s cubic-bezier(.4,0,.2,1);transform:scaleX(-1);z-index:2}
+      .car-flag{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:3px 12px;background:#F6D27A;border:2.5px solid #3E3A39;border-radius:999px;font-weight:700;font-size:20px;color:#D9453D;animation:pop .35s}
+
+      /* 3. 充氣爆氣球 */
+      .balloon-stage{height:185px;max-width:340px;margin:8px auto 12px;background:#EBF6FC;border:3px solid #3E3A39;border-radius:18px;box-shadow:4px 4px 0 #3E3A39;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:14px;position:relative;overflow:hidden}
+      .big-balloon{width:54px;height:64px;background:#F2A497;border:3px solid #3E3A39;border-radius:50% 50% 48% 48% / 55% 55% 45% 45%;display:grid;place-items:center;font-weight:700;font-size:20px;box-shadow:inset -6px -6px 0 rgba(62,58,57,.12);transition:transform .2s cubic-bezier(.3,1.6,.5,1);margin-bottom:18px}
+      .big-balloon.boom{background:#FFF3C4;border-style:dashed;border-color:#D9453D;color:#D9453D;font-size:26px;transform:scale(1.5)!important;animation:pop .35s}
+
+      /* 4. 接星星 */
+      @keyframes swayBasket{0%,100%{left:22px}50%{left:240px}}
+      @keyframes starFall{0%{top:-30px}100%{top:115px}}
+      .catch-stage{position:relative;height:185px;max-width:350px;margin:8px auto 12px;background:#14456A;border:3px solid #3E3A39;border-radius:18px;box-shadow:4px 4px 0 #3E3A39;overflow:hidden}
+      .fall-star{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:36px;transition:top .5s ease-in}
+      .catch-basket{position:absolute;bottom:14px;left:22px;width:76px;height:42px;background:#F6D27A;border:3px solid #3E3A39;border-radius:8px 8px 22px 22px;display:grid;place-items:center;font-weight:700;font-size:17px;animation:swayBasket 2.2s ease-in-out infinite}
+      .catch-basket.paused{animation-play-state:paused;left:50%!important;transform:translateX(-50%);background:#FFF3C4;color:#D9453D;font-size:22px;width:96px}
+
+      /* 5. 吹蠟燭 */
+      @keyframes flameFlicker{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.15) rotate(5deg)}}
+      .cake-stage{height:185px;max-width:340px;margin:8px auto 12px;background:#FFF7E6;border:3px solid #3E3A39;border-radius:18px;box-shadow:4px 4px 0 #3E3A39;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:16px;position:relative}
+      .candles-row{display:flex;gap:22px;margin-bottom:-2px;z-index:2}
+      .candle-item{display:flex;flex-direction:column;align-items:center}
+      .flame{font-size:22px;animation:flameFlicker .5s ease-in-out infinite;transition:opacity .3s,transform .3s}
+      .flame.out{opacity:0;transform:translateX(18px) scale(.3)}
+      .candle-stick{width:12px;height:34px;background:#A8D3E6;border:2.5px solid #3E3A39;border-radius:4px}
+      .cake-body{width:190px;height:66px;background:#F2A497;border:3px solid #3E3A39;border-radius:16px 16px 10px 10px;box-shadow:3px 3px 0 #3E3A39;display:grid;place-items:center;font-size:24px;font-weight:700;color:#FFFEFA}
+
+      /* 6. 流星許願 */
+      @keyframes meteorFly{0%{top:12px;right:16px;opacity:1;transform:scale(.7)}70%{top:105px;right:210px;opacity:1;transform:scale(1.25)}100%{top:125px;right:245px;opacity:0;transform:scale(.8)}}
+      .wish-sky{position:relative;height:180px;max-width:350px;margin:8px auto 12px;background:linear-gradient(180deg,#14456A,#2B6CB0);border:3px solid #3E3A39;border-radius:18px;box-shadow:4px 4px 0 #3E3A39;overflow:hidden;display:flex;align-items:center;justify-content:center}
+      .shooting-star{position:absolute;top:16px;right:24px;font-size:34px;pointer-events:none}
+      .shooting-star.fly{animation:meteorFly .85s ease-out forwards}
+      .wish-result{padding:10px 22px;background:#FFF3C4;border:3px solid #3E3A39;border-radius:999px;font-size:28px;font-weight:700;color:#D9453D;box-shadow:3px 3px 0 #3E3A39;animation:pop .4s}
+    `;
+    document.head.appendChild(st);
+  }
+})();
+
+/* 1. 草原趣味賽馬 */
+window.LOTTO_PLUGINS.push({
+  title: '🐎 草原趣味賽馬',
+  hint: '選一匹你最看好的小馬應援，看看牠能跑出幾分！',
+  render: function(container, claimPointsFn) {
+    let busy = false;
+    container.innerHTML = `
+      <div class="horse-track">
+        <div class="horse-lane"><span class="horse-runner" id="hr0">🐎</span><div class="horse-finish"></div></div>
+        <div class="horse-lane"><span class="horse-runner" id="hr1">🦄</span><div class="horse-finish"></div></div>
+        <div class="horse-lane"><span class="horse-runner" id="hr2">🦓</span><div class="horse-finish"></div></div>
+      </div>
+      <div class="horse-btns">
+        <button type="button" class="btn sm" data-horse="0">1號 駿馬</button>
+        <button type="button" class="btn sm sky" data-horse="1">2號 獨角獸</button>
+        <button type="button" class="btn sm coral" data-horse="2">3號 斑馬</button>
+      </div>
+    `;
+    container.querySelector('.horse-btns').addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-horse]');
+      if (!btn || busy) return;
+      busy = true;
+      const pick = +btn.dataset.horse;
+      container.querySelectorAll('[data-horse]').forEach(b => b.disabled = true);
+      document.getElementById('lottoMsg').textContent = '砰！起跑槍響，全速衝向終點線…';
+
+      [0, 1, 2].forEach(i => {
+        const el = container.querySelector('#hr' + i);
+        el.style.left = (i === pick ? '275px' : (195 + Math.floor(Math.random() * 55)) + 'px');
+      });
+
+      try {
+        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 1100))]);
+        if (res && (res.ok || res.already)) {
+          btn.textContent = `🏆 +${res.points}分`;
+        }
+      } catch (e) {
+        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
+        busy = false;
+      }
+    });
+  }
+});
+
+/* 2. 極速賽車大賽 */
+window.LOTTO_PLUGINS.push({
+  title: '🏎️ 極速賽車大賽',
+  hint: '點擊「踩油門衝刺！」，衝過終點線領取獎勵！',
+  render: function(container, claimPointsFn) {
+    let busy = false;
+    container.innerHTML = `
+      <div class="car-track">
+        <div id="carFlag" class="car-flag" style="display:none"></div>
+        <div class="car-road">
+          <div class="car-stripe"></div>
+          <div class="race-car" id="raceCar">🏎️</div>
+          <div class="car-goal"></div>
+        </div>
+      </div>
+      <button type="button" class="btn green sm" id="gasBtn">踩油門衝刺！ 🏁</button>
+    `;
+    container.querySelector('#gasBtn').onclick = async function() {
+      if (busy) return;
+      busy = true;
+      this.disabled = true;
+      container.querySelector('#raceCar').style.left = '265px';
+      document.getElementById('lottoMsg').textContent = '轟隆隆——極速衝過終點線！';
+      try {
+        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 850))]);
+        if (res && (res.ok || res.already)) {
+          const flag = container.querySelector('#carFlag');
+          flag.textContent = `🏁 衝線獲得 +${res.points} 分！`;
+          flag.style.display = 'block';
+        }
+      } catch (e) {
+        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
+        this.disabled = false;
+        busy = false;
+      }
+    };
+  }
+});
+
+/* 3. 充氣讓氣球爆炸 */
+window.LOTTO_PLUGINS.push({
+  title: '🎈 充氣爆氣球挑戰',
+  hint: '連按 4 下「用力打氣」，把氣球吹爆揭曉分數！',
+  render: function(container, claimPointsFn) {
+    let pumps = 0;
+    let busy = false;
+    container.innerHTML = `
+      <div class="balloon-stage">
+        <div class="big-balloon" id="bigBalloon">0 / 4</div>
+      </div>
+      <button type="button" class="btn sm" id="pumpBtn">用力打氣！ 💨</button>
+    `;
+    const balloon = container.querySelector('#bigBalloon');
+    const pumpBtn = container.querySelector('#pumpBtn');
+
+    pumpBtn.onclick = async function() {
+      if (busy) return;
+      pumps++;
+      if (pumps < 4) {
+        const scale = 1 + pumps * 0.28;
+        balloon.style.transform = `scale(${scale})`;
+        balloon.textContent = `${pumps} / 4`;
+        document.getElementById('lottoMsg').textContent = pumps === 3 ? '好鼓好鼓！再打最後一下就要爆啦！' : '氣球變大囉，繼續打氣！';
+        return;
+      }
+
+      busy = true;
+      pumpBtn.disabled = true;
+      balloon.classList.add('boom');
+      balloon.textContent = '💥 砰！';
+      document.getElementById('lottoMsg').textContent = '砰一聲炸開啦，看看裡面藏了幾分…';
+
+      try {
+        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 450))]);
+        if (res && (res.ok || res.already)) {
+          balloon.textContent = `+${res.points} 分`;
+        }
+      } catch (e) {
+        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
+        pumpBtn.disabled = false;
+        busy = false;
+      }
+    };
+  }
+});
+
+/* 4. 接星星 */
+window.LOTTO_PLUGINS.push({
+  title: '🧺 幸運籃子接星星',
+  hint: '看準時機點擊「接住星星！」，把大星星接進籃子裡！',
+  render: function(container, claimPointsFn) {
+    let busy = false;
+    container.innerHTML = `
+      <div class="catch-stage">
+        <div class="fall-star" id="fallStar">⭐</div>
+        <div class="catch-basket" id="catchBasket">接星星</div>
+      </div>
+      <button type="button" class="btn green sm" id="catchBtn">接住星星！ ⭐</button>
+    `;
+    container.querySelector('#catchBtn').onclick = async function() {
+      if (busy) return;
+      busy = true;
+      this.disabled = true;
+      const star = container.querySelector('#fallStar');
+      const basket = container.querySelector('#catchBasket');
+      basket.classList.add('paused');
+      star.style.top = '112px';
+      document.getElementById('lottoMsg').textContent = '咻——大星星掉進籃子裡啦！';
+
+      try {
+        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 550))]);
+        if (res && (res.ok || res.already)) {
+          star.style.display = 'none';
+          basket.textContent = `⭐+${res.points}分`;
+        }
+      } catch (e) {
+        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
+        this.disabled = false;
+        busy = false;
+      }
+    };
+  }
+});
+
+/* 5. 吹蠟燭 */
+window.LOTTO_PLUGINS.push({
+  title: '🎂 許願吹蠟燭',
+  hint: '點擊「用力吹一口氣」，把蛋糕上的蠟燭全部吹熄！',
+  render: function(container, claimPointsFn) {
+    let busy = false;
+    container.innerHTML = `
+      <div class="cake-stage">
+        <div class="candles-row">
+          <div class="candle-item"><span class="flame">🔥</span><div class="candle-stick"></div></div>
+          <div class="candle-item"><span class="flame">🔥</span><div class="candle-stick" style="background:#F6D27A"></div></div>
+          <div class="candle-item"><span class="flame">🔥</span><div class="candle-stick" style="background:#B9DAA5"></div></div>
+        </div>
+        <div class="cake-body" id="cakeBody">🎂 許願蛋糕</div>
+      </div>
+      <button type="button" class="btn sky sm" id="blowBtn">呼～用力吹熄蠟燭！ 🌬️</button>
+    `;
+    container.querySelector('#blowBtn').onclick = async function() {
+      if (busy) return;
+      busy = true;
+      this.disabled = true;
+      container.querySelectorAll('.flame').forEach(f => f.classList.add('out'));
+      document.getElementById('lottoMsg').textContent = '呼——蠟燭全熄啦，願望成真！';
+
+      try {
+        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 500))]);
+        if (res && (res.ok || res.already)) {
+          const cake = container.querySelector('#cakeBody');
+          cake.style.background = '#F6D27A';
+          cake.style.color = '#D9453D';
+          cake.textContent = `🎉 獲得 +${res.points} 分`;
+        }
+      } catch (e) {
+        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
+        this.disabled = false;
+        busy = false;
+      }
+    };
+  }
+});
+
+/* 6. 流星許願 */
+window.LOTTO_PLUGINS.push({
+  title: '🌠 夜空流星許願',
+  hint: '點擊「對流星許願」，看看夜空會賜給你幾分祝福！',
+  render: function(container, claimPointsFn) {
+    let busy = false;
+    container.innerHTML = `
+      <div class="wish-sky" id="wishSky">
+        <span style="position:absolute;top:24px;left:36px;color:#FFF;opacity:.7">✦</span>
+        <span style="position:absolute;bottom:28px;right:48px;color:#FFF;opacity:.7">✦</span>
+        <span style="position:absolute;top:65px;left:85px;color:#F6D27A;opacity:.8">★</span>
+        <div class="shooting-star" id="meteorEl">🌠</div>
+      </div>
+      <button type="button" class="btn sm" id="wishBtn">🙏 對流星許願！</button>
+    `;
+    container.querySelector('#wishBtn').onclick = async function() {
+      if (busy) return;
+      busy = true;
+      this.disabled = true;
+      container.querySelector('#meteorEl').classList.add('fly');
+      document.getElementById('lottoMsg').textContent = '流星劃過夜空，誠心許願中…';
+
+      try {
+        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 850))]);
+        if (res && (res.ok || res.already)) {
+          const sky = container.querySelector('#wishSky');
+          sky.insertAdjacentHTML('beforeend', `<div class="wish-result">✨ 願望實現 +${res.points} 分</div>`);
+        }
+      } catch (e) {
+        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
+        this.disabled = false;
+        busy = false;
+      }
+    };
+  }
+});
