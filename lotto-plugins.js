@@ -793,3 +793,278 @@ window.LOTTO_PLUGINS.push({
     };
   }
 });
+/**
+ * =====================================================================
+ * 教室聯絡簿 - 外部擴充抽獎小遊戲 (lotto-plugins.js)
+ * 風格：手繪插畫粗框線風，自動銜接 Firebase 抽獎計分系統
+ * =====================================================================
+ */
+(function () {
+  window.LOTTO_PLUGINS = window.LOTTO_PLUGINS || [];
+
+  // 1. 注入專屬手繪風 CSS 樣式（自動避免重複載入）
+  if (!document.getElementById('lotto-plugins-style')) {
+    const st = document.createElement('style');
+    st.id = 'lotto-plugins-style';
+    st.textContent = `
+      @keyframes lpBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+      @keyframes lpShake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)} }
+      @keyframes lpClawMove { 0%,100%{left:16%} 50%{left:72%} }
+
+      /* 遊戲 1：開寶箱 */
+      .lp-chests { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:390px; margin:12px auto 14px; }
+      .lp-chest-btn {
+        border:3px solid #3E3A39; border-radius:18px; background:#FFF7E6;
+        box-shadow:4px 4px 0 #3E3A39; padding:12px 6px;
+        display:flex; flex-direction:column; align-items:center; gap:6px;
+        transition:transform .14s, background .2s;
+      }
+      .lp-chest-btn:hover:not(:disabled) { transform:translateY(-5px); background:#FFF1C9; }
+      .lp-chest-btn.opened { background:#FFFDF5; border-color:#D9453D; transform:scale(1.06); }
+      .lp-chest-btn.dim { opacity:.5; background:#EFECE6; }
+      .lp-chest-ic { font-size:42px; line-height:1.1; }
+      .lp-chest-lbl { font-size:17px; font-weight:700; color:#3E3A39; }
+      .lp-chest-pts { font-size:30px; font-weight:700; color:#D9453D; animation:pop .35s ease-out; }
+
+      /* 遊戲 2：打地鼠 */
+      .lp-mole-stage {
+        max-width:370px; margin:10px auto 14px; padding:14px 12px;
+        background:#E9F4E0; border:3px solid #3E3A39; border-radius:20px;
+        box-shadow:4px 4px 0 #3E3A39;
+        display:grid; grid-template-columns:repeat(2,1fr); gap:14px;
+      }
+      .lp-hole-btn {
+        position:relative; height:84px; border:3px solid #3E3A39; border-radius:18px;
+        background:#B9DAA5; box-shadow:3px 3px 0 #3E3A39; overflow:hidden;
+        display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding-bottom:6px;
+      }
+      .lp-hole-pit {
+        width:78%; height:22px; background:#5A4636; border:2.5px solid #3E3A39; border-radius:50%;
+      }
+      .lp-mole-critter {
+        position:absolute; bottom:14px; font-size:38px; line-height:1;
+        transition:transform .18s cubic-bezier(.3,1.5,.5,1);
+        transform:translateY(46px);
+      }
+      .lp-hole-btn.up .lp-mole-critter { transform:translateY(0); }
+      .lp-hole-btn.bonked { background:#FFF3C4; border-color:#D9453D; }
+      .lp-hole-btn.bonked .lp-mole-critter { transform:translateY(-2px) scale(1.15); }
+      .lp-hole-btn.dim { opacity:.5; }
+      .lp-mole-pts {
+        position:absolute; top:6px; right:8px; background:#F6D27A; border:2px solid #3E3A39;
+        border-radius:10px; padding:1px 7px; font-size:18px; font-weight:700; color:#D9453D;
+      }
+
+      /* 遊戲 3：夾娃娃機 */
+      .lp-claw-box {
+        position:relative; height:195px; max-width:350px; margin:10px auto 12px;
+        background:linear-gradient(180deg,#EBF6FC 0%,#FFFDF8 72%,#F2A497 72%,#F2A497 100%);
+        border:3px solid #3E3A39; border-radius:20px; box-shadow:4px 4px 0 #3E3A39;
+        overflow:hidden;
+      }
+      .lp-claw-rail {
+        position:absolute; top:14px; left:10px; right:10px; height:8px;
+        background:#F6D27A; border:2.5px solid #3E3A39; border-radius:999px;
+      }
+      .lp-claw-rig {
+        position:absolute; top:18px; left:16%; width:44px;
+        display:flex; flex-direction:column; align-items:center;
+        animation:lpClawMove 2.2s ease-in-out infinite;
+      }
+      .lp-claw-rig.paused { animation-play-state:paused; }
+      .lp-claw-cable {
+        width:6px; height:24px; background:#3E3A39;
+        transition:height .5s ease-in-out;
+      }
+      .lp-claw-head { font-size:30px; line-height:1; margin-top:-4px; }
+      .lp-claw-prize {
+        margin-top:-4px; width:44px; height:44px; border-radius:50%;
+        border:3px solid #3E3A39; background:#F6D27A; box-shadow:2px 2px 0 #3E3A39;
+        display:grid; place-items:center; font-size:18px; font-weight:700; color:#D9453D;
+        animation:pop .35s ease-out;
+      }
+      .lp-toys-floor {
+        position:absolute; bottom:46px; left:14px; right:14px;
+        display:flex; justify-content:space-around; font-size:30px; pointer-events:none;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // ===================================================================
+  // 遊戲 A：🗝️ 神秘海盜開寶箱
+  // ===================================================================
+  window.LOTTO_PLUGINS.push({
+    title: '🗝️ 神秘海盜開寶箱',
+    hint: '選一個藏寶箱打開，看看裡面裝了幾顆星星分數！',
+    render: function (container, triggerDraw) {
+      const names = ['黃金寶箱', '海洋寶箱', '森林寶箱'];
+      container.innerHTML =
+        '<div class="lp-chests">' +
+        [0, 1, 2].map(i =>
+          '<button type="button" class="lp-chest-btn" data-chest="' + i + '">' +
+            '<span class="lp-chest-ic">🧰</span>' +
+            '<span class="lp-chest-lbl">' + names[i] + '</span>' +
+          '</button>'
+        ).join('') +
+        '</div>';
+
+      let busy = false;
+      container.addEventListener('click', async function (ev) {
+        const btn = ev.target.closest('[data-chest]');
+        if (!btn || busy) return;
+        busy = true;
+
+        const picked = +btn.dataset.chest;
+        const allBtns = [...container.querySelectorAll('.lp-chest-btn')];
+        allBtns.forEach(b => b.disabled = true);
+        btn.classList.add('opened');
+        btn.querySelector('.lp-chest-ic').style.animation = 'lpShake .45s ease-in-out';
+
+        try {
+          const [res] = await Promise.all([
+            triggerDraw(),
+            new Promise(r => setTimeout(r, 550))
+          ]);
+          if (res && (res.ok || res.already)) {
+            const others = [1, 2, 3].filter(n => n !== res.points);
+            let oi = 0;
+            allBtns.forEach((b, idx) => {
+              if (idx === picked) {
+                b.innerHTML = '<span class="lp-chest-ic">✨</span><span class="lp-chest-pts">+' + res.points + ' 分</span>';
+              } else {
+                b.classList.add('dim');
+                b.innerHTML = '<span class="lp-chest-ic">📦</span><span class="lp-chest-lbl">+' + others[oi++] + ' 分</span>';
+              }
+            });
+          }
+        } catch (e) {
+          allBtns.forEach(b => b.disabled = false);
+          busy = false;
+        }
+      });
+    }
+  });
+
+  // ===================================================================
+  // 遊戲 B：🔨 草原打地鼠
+  // ===================================================================
+  window.LOTTO_PLUGINS.push({
+    title: '🔨 草原打地鼠',
+    hint: '地鼠探頭出來啦！快點任一隻小地鼠敲出幸運分數！',
+    render: function (container, triggerDraw) {
+      const critters = ['🐹', '🐰', '🐻', '🦊'];
+      container.innerHTML =
+        '<div class="lp-mole-stage">' +
+        [0, 1, 2, 3].map(i =>
+          '<button type="button" class="lp-hole-btn" data-hole="' + i + '">' +
+            '<span class="lp-mole-critter">' + critters[i] + '</span>' +
+            '<span class="lp-hole-pit"></span>' +
+          '</button>'
+        ).join('') +
+        '</div>';
+
+      const holes = [...container.querySelectorAll('.lp-hole-btn')];
+      let activeIdx = 0;
+      holes[0].classList.add('up');
+
+      // 讓地鼠輪流探頭增加趣味感（但點任何一洞都能隨時擊中）
+      const iv = setInterval(() => {
+        holes.forEach(h => h.classList.remove('up'));
+        activeIdx = (activeIdx + 1) % 4;
+        holes[activeIdx].classList.add('up');
+        holes[(activeIdx + 2) % 4].classList.add('up');
+      }, 650);
+
+      let busy = false;
+      container.addEventListener('click', async function (ev) {
+        const btn = ev.target.closest('[data-hole]');
+        if (!btn || busy) return;
+        busy = true;
+        clearInterval(iv);
+
+        const picked = +btn.dataset.hole;
+        holes.forEach(h => { h.disabled = true; h.classList.add('up'); });
+        btn.classList.add('bonked');
+        btn.querySelector('.lp-mole-critter').textContent = '💫';
+
+        try {
+          const [res] = await Promise.all([
+            triggerDraw(),
+            new Promise(r => setTimeout(r, 450))
+          ]);
+          if (res && (res.ok || res.already)) {
+            const others = [1, 2, 3, 2].filter(n => n !== res.points);
+            let oi = 0;
+            holes.forEach((h, idx) => {
+              if (idx === picked) {
+                h.insertAdjacentHTML('beforeend', '<span class="lp-mole-pts">🔨 +' + res.points + '分</span>');
+              } else {
+                h.classList.add('dim');
+                h.insertAdjacentHTML('beforeend', '<span class="lp-mole-pts" style="background:#FFF">+' + others[oi++] + '分</span>');
+              }
+            });
+          }
+        } catch (e) {
+          holes.forEach(h => h.disabled = false);
+          busy = false;
+        }
+      });
+    }
+  });
+
+  // ===================================================================
+  // 遊戲 C：🕹️ 歡樂夾娃娃機
+  // ===================================================================
+  window.LOTTO_PLUGINS.push({
+    title: '🕹️ 歡樂夾娃娃機',
+    hint: '看準移動的爪子，按下「下爪夾取」夾起幸運扭蛋！',
+    render: function (container, triggerDraw) {
+      container.innerHTML =
+        '<div class="lp-claw-box">' +
+          '<div class="lp-claw-rail"></div>' +
+          '<div class="lp-claw-rig" id="lpClawRig">' +
+            '<div class="lp-claw-cable" id="lpClawCable"></div>' +
+            '<div class="lp-claw-head" id="lpClawHead">🪝</div>' +
+          '</div>' +
+          '<div class="lp-toys-floor"><span>🧸</span><span>🥚</span><span>🎁</span><span>🌟</span></div>' +
+        '</div>' +
+        '<button type="button" class="btn green sm" id="lpGrabBtn">🕹️ 下爪夾取！</button>';
+
+      let busy = false;
+      const grabBtn = container.querySelector('#lpGrabBtn');
+      const rig = container.querySelector('#lpClawRig');
+      const cable = container.querySelector('#lpClawCable');
+
+      grabBtn.addEventListener('click', async function () {
+        if (busy) return;
+        busy = true;
+        grabBtn.disabled = true;
+        rig.classList.add('paused');
+
+        // 1. 爪子下降
+        cable.style.height = '86px';
+
+        try {
+          const [res] = await Promise.all([
+            triggerDraw(),
+            new Promise(r => setTimeout(r, 550))
+          ]);
+
+          // 2. 夾起扭蛋上升並揭曉分數
+          cable.style.height = '24px';
+          await new Promise(r => setTimeout(r, 480));
+
+          if (res && (res.ok || res.already)) {
+            rig.insertAdjacentHTML('beforeend', '<div class="lp-claw-prize">+' + res.points + '</div>');
+          }
+        } catch (e) {
+          cable.style.height = '24px';
+          rig.classList.remove('paused');
+          grabBtn.disabled = false;
+          busy = false;
+        }
+      });
+    }
+  });
+})();
