@@ -7,13 +7,6 @@
     const st = document.createElement('style');
     st.id = 'lotto-all-plugins-style';
     st.textContent = `
-      /* 1. 打地鼠 */
-      .mole-field{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:360px;margin:10px auto 14px;padding:14px 10px;background:#B9DAA5;border:3px solid #3E3A39;border-radius:20px;box-shadow:4px 4px 0 #3E3A39}
-      .mole-hole{height:92px;border:3px solid #3E3A39;border-radius:18px;background:#6B4E3D;box-shadow:inset 0 10px 0 rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;transition:transform .12s}
-      .mole-hole:hover:not(:disabled){transform:scale(1.05)}
-      .mole-hole.bonked{background:#FFF3C4;color:#D9453D;font-size:24px;font-weight:700;animation:pop .35s}
-      .mole-hole.dim{opacity:.48}
-
       /* 2. 戳戳樂 */
       .poke-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:310px;margin:8px auto 14px;padding:12px;background:#F2A497;border:3px solid #3E3A39;border-radius:20px;box-shadow:4px 4px 0 #3E3A39}
       .poke-cell{aspect-ratio:1/1;border:3px solid #3E3A39;border-radius:14px;background:radial-gradient(circle,#FFFDF5 60%,#F6D27A 100%);box-shadow:2px 2px 0 #3E3A39;font-size:28px;font-weight:700;display:grid;place-items:center;transition:transform .12s}
@@ -90,43 +83,6 @@
     document.head.appendChild(st);
   }
 })();
-
-/* 1. 幸運打地鼠 */
-window.LOTTO_PLUGINS.push({
-  title: '🔨 幸運打地鼠',
-  hint: '快敲一隻探頭的小地鼠吧！',
-  render: function(container, claimPointsFn) {
-    let busy = false;
-    container.innerHTML = `
-      <div class="mole-field">
-        <button type="button" class="mole-hole" data-mole="0">🐹</button>
-        <button type="button" class="mole-hole" data-mole="1">🐹</button>
-        <button type="button" class="mole-hole" data-mole="2">🐹</button>
-      </div>
-    `;
-    container.querySelector('.mole-field').addEventListener('click', async (ev) => {
-      const btn = ev.target.closest('[data-mole]');
-      if (!btn || busy) return;
-      busy = true;
-      const all = [...container.querySelectorAll('.mole-hole')];
-      all.forEach(b => b.disabled = true);
-      btn.classList.add('bonked');
-      btn.textContent = '💥';
-      document.getElementById('lottoMsg').textContent = '咚！打中地鼠啦…';
-      try {
-        const [res] = await Promise.all([claimPointsFn(), new Promise(r => setTimeout(r, 450))]);
-        if (res && (res.ok || res.already)) {
-          btn.textContent = `+${res.points} 分`;
-          all.forEach(b => { if (b !== btn) b.classList.add('dim'); });
-        }
-      } catch (e) {
-        document.getElementById('lottoMsg').textContent = e.message || '發生錯誤';
-        all.forEach(b => { b.disabled = false; b.classList.remove('bonked'); b.textContent = '🐹'; });
-        busy = false;
-      }
-    });
-  }
-});
 
 /* 2. 懷舊童玩戳戳樂 */
 window.LOTTO_PLUGINS.push({
@@ -910,7 +866,7 @@ window.LOTTO_PLUGINS.push({
         '</div>';
 
       let busy = false;
-      container.addEventListener('click', async function (ev) {
+      container.firstElementChild.addEventListener('click', async function (ev) {
         const btn = ev.target.closest('[data-chest]');
         if (!btn || busy) return;
         busy = true;
@@ -970,6 +926,7 @@ window.LOTTO_PLUGINS.push({
 
       // 讓地鼠輪流探頭增加趣味感（但點任何一洞都能隨時擊中）
       const iv = setInterval(() => {
+        if (!holes[0].isConnected) { clearInterval(iv); return; }
         holes.forEach(h => h.classList.remove('up'));
         activeIdx = (activeIdx + 1) % 4;
         holes[activeIdx].classList.add('up');
@@ -977,7 +934,7 @@ window.LOTTO_PLUGINS.push({
       }, 650);
 
       let busy = false;
-      container.addEventListener('click', async function (ev) {
+      container.firstElementChild.addEventListener('click', async function (ev) {
         const btn = ev.target.closest('[data-hole]');
         if (!btn || busy) return;
         busy = true;
